@@ -4,51 +4,54 @@ TrueNAS runs Docker natively (24.10 and later) and accepts a compose file as a
 Custom App. The only NAS-specific work is preparing a dataset the container
 user can write to.
 
-## 1. Create the dataset
+Throughout, replace `POOL` with your pool name and `USER` with the person's
+name. The examples use uid/gid 1000; use whatever uid owns the dataset and set
+`PUID`/`PGID` to match.
+
+## 1. Create the datasets
 
 Datasets -> pick your pool -> Add Dataset.
 
 | Setting | Value |
 |---|---|
-| Parent | `POOL/apps` (create it first if you do not have one) |
-| Name | `devbox` |
+| Parent | `POOL/devboxs` (create it first; one child dataset per person lives under it) |
+| Name | `USER` |
 | Dataset Preset | Generic |
 | Compression | inherit (lz4) |
 | atime | off |
 | Record size | default |
 
-One dataset with subdirectories is simpler than a dataset per mount. A single
-snapshot then captures Claude history, kubeconfig, work files, and shell
-history together, and you restore them as a unit.
+One dataset per person with subdirectories is simpler than a dataset per
+mount. A single snapshot then captures Claude history, kubeconfig, work files
+and shell history together, and you restore them as a unit.
 
 Keep it outside `ix-apps`. Data in the apps dataset is tied to the app's
 lifecycle; this dataset should survive an uninstall.
 
-## 2. Own it as uid 1000
+## 2. Create the user and own the dataset
 
-The image runs as user `dev`, uid 1000. From System -> Shell:
+Create the group first so its gid matches the uid: Credentials -> Groups ->
+Add, then Credentials -> Users -> Add with that primary group, no home
+directory, shell nologin, password disabled. This account exists only to own
+files. Then from System -> Shell (as root):
 
 ```bash
-D=/mnt/POOL/apps/devbox
+D=/mnt/POOL/devboxs/USER
 mkdir -p $D/{claude,work,kube,talos,local}
-touch $D/gitconfig
-printf '[user]\n\tname = meeks-man\n\temail = joshua.meeks@gmail.com\n' > $D/gitconfig
+printf '[user]\n\tname = YOUR-GIT-NAME\n\temail = you@example.com\n' > $D/gitconfig
 chown -R 1000:1000 $D
-chmod 700 $D/claude $D/kube $D/talos
+chmod 700 $D $D/claude $D/kube $D/talos
+id USER
 ```
 
 The gitconfig file must exist before the first start. If Docker finds nothing
 at that path it creates a directory, and git then fails to read it.
 
-If your TrueNAS login is the first user you created, it is probably already
-uid 1000 and you can also do this through the Permissions editor. Check with
-`id <username>` in the shell.
-
 ## 3. Copy credentials in
 
 ```bash
-cp /path/to/talos-new/kubeconfig  $D/kube/config
-cp /path/to/talos-new/talosconfig $D/talos/config
+cp /path/to/kubeconfig  $D/kube/config
+cp /path/to/talosconfig $D/talos/config
 chown 1000:1000 $D/kube/config $D/talos/config
 chmod 600 $D/kube/config $D/talos/config
 ```
@@ -56,43 +59,18 @@ chmod 600 $D/kube/config $D/talos/config
 ## 4. Snapshot it
 
 Data Protection -> Periodic Snapshot Tasks -> Add.
-Dataset `POOL/apps/devbox`, daily, keep two weeks. Add it to any replication
-task you already run.
+Dataset `POOL/devboxs`, recursive, daily, keep two weeks. Recursive covers
+every person's child dataset automatically. Add it to any replication task
+you already run.
 
 ## 5. Install the app
 
 Apps -> Discover -> Custom App -> Install via YAML. Paste
-`compose.truenas.yaml` with POOL replaced and the ttyd password set.
+`compose/devbox.truenas.yaml` with POOL and USER replaced, PUID/PGID set, and
+the ttyd password changed.
 
 Open `http://<truenas-ip>:7681`. Run `claude` and `/login` once; the token
 lands in the claude directory and survives image updates.
-
-## Notes
-
-- Watchtower is scoped by label and will not touch other TrueNAS apps.
-- TrueNAS shows the app as "custom" and does not manage its updates itself.
-  Watchtower does that from the nightly GHCR build.
-- Resource limits in the compose file are a starting point. Raise them if
-  Claude Code sessions or builds feel slow.
-
-## Several people on one NAS
-
-Give each person their own dataset and run the container as their TrueNAS
-account:
-
-```
-POOL/apps/devbox/josh    owned by josh   (uid 1000)   PUID=1000 PGID=1000  port 7681
-POOL/apps/devbox/alice   owned by alice  (uid 1001)   PUID=1001 PGID=1001  port 7682
-```
-
-Duplicate the `devbox` service in the compose file once per person, changing
-`container_name`, the host paths, `PUID`, `PGID`, the port, and
-`TTYD_CREDENTIAL`. One watchtower service covers all of them. Find a user's
-uid with `id <name>` in the TrueNAS shell.
-
-Running as the shared `apps` user (568) works too, by setting `PUID=568` and
-`PGID=568` and owning the dataset accordingly, but that gives every other
-568 app on the NAS a path to this one's credentials. Prefer per-person uids.
 
 ## Adding the VS Code box to the same profile
 
@@ -100,16 +78,40 @@ Running as the shared `apps` user (568) works too, by setting `PUID=568` and
 extra for VS Code's own state. Create it and install:
 
 ```bash
-D=/mnt/FastClass/devboxs/meeks
-mkdir -p $D/vscode && chown 3000:3000 $D/vscode
+D=/mnt/POOL/devboxs/USER
+mkdir -p $D/vscode && chown 1000:1000 $D/vscode
 ```
 
 Then Apps -> Custom App -> Install via YAML with `compose/vscode.truenas.yaml`.
-Open `https://meeksnas:7691` (self-signed) or `http://meeksnas:7690`, log in
-with CUSTOM_USER / PASSWORD, and VS Code opens on your work directory. Sign in
-to Copilot or GitHub inside VS Code as normal; credentials persist in
+Open `https://<truenas-ip>:7691` (self-signed) or `http://<truenas-ip>:7690`,
+log in with CUSTOM_USER / PASSWORD, and VS Code opens on the work directory.
+Sign in to Copilot or GitHub inside VS Code as normal; credentials persist in
 `$D/vscode`.
 
 The devbox and VS Code containers can run at the same time. Both see the same
 files, and a Claude Code session started in one is visible from the other via
 `claude --resume`.
+
+## Several people on one NAS
+
+```
+POOL/devboxs/alice   owned by alice (uid 1001)   PUID=1001 PGID=1001   ports 7681 / 7690 / 7691
+POOL/devboxs/bob     owned by bob   (uid 1002)   PUID=1002 PGID=1002   ports 7682 / 7692 / 7693
+```
+
+Duplicate the services once per person, changing `container_name`, the host
+paths, `PUID`, `PGID`, the ports and the credential. One watchtower service
+covers all of them. Find a user's uid with `id <name>` in the TrueNAS shell.
+
+Running as the shared `apps` user (568) works too, but it gives every other
+568 app on the NAS a path to this one's credentials. Prefer per-person uids.
+
+## Notes
+
+- Watchtower is scoped by label and will not touch other TrueNAS apps.
+- TrueNAS shows the apps as "custom" and does not manage their updates itself.
+  Watchtower does that from the nightly GHCR build.
+- Resource limits in the compose files are a starting point. Raise them if
+  Claude Code sessions, builds or VS Code feel slow.
+- Once Caddy and Authentik sit in front, drop the ttyd and KasmVNC passwords
+  and stop publishing the ports to the LAN.

@@ -2,7 +2,7 @@
 #
 # Before installing, create the dataset and directories described in
 # docs/truenas.md. Replace POOL below with your pool name. Every path under
-# /mnt/POOL/apps/devbox must be owned by uid 1000, which is the container user.
+# See docs/truenas.md for dataset and permission setup.
 
 services:
   devbox:
@@ -13,15 +13,15 @@ services:
       # Run as this uid/gid. Must match the owner of the mounted directories.
       - PUID=1000
       - PGID=1000
-      - TTYD_CREDENTIAL=josh:pick-a-strong-password
+      - TTYD_CREDENTIAL=USER:pick-a-strong-password
       - TZ=America/Chicago
     volumes:
-      - /mnt/POOL/apps/devbox/claude:/home/dev/.claude
-      - /mnt/POOL/apps/devbox/work:/home/dev/work
-      - /mnt/POOL/apps/devbox/kube:/home/dev/.kube
-      - /mnt/POOL/apps/devbox/talos:/home/dev/.talos
-      - /mnt/POOL/apps/devbox/local:/home/dev/.local/state
-      - /mnt/POOL/apps/devbox/gitconfig:/home/dev/.gitconfig
+      - /mnt/POOL/devboxs/USER/claude:/home/dev/.claude
+      - /mnt/POOL/devboxs/USER/work:/home/dev/work
+      - /mnt/POOL/devboxs/USER/kube:/home/dev/.kube
+      - /mnt/POOL/devboxs/USER/talos:/home/dev/.talos
+      - /mnt/POOL/devboxs/USER/local:/home/dev/.local/state
+      - /mnt/POOL/devboxs/USER/gitconfig:/home/dev/.gitconfig
     ports:
       - '7681:7681'
     restart: unless-stopped
