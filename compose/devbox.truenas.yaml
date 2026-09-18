@@ -1,8 +1,7 @@
 # TrueNAS SCALE: Apps -> Discover -> Custom App -> Install via YAML, paste this.
 #
-# Before installing, create the dataset and directories described in
-# docs/truenas.md. Replace POOL below with your pool name. Every path under
-# See docs/truenas.md for dataset and permission setup.
+# Replace POOL and USER, set PUID/PGID to the uid/gid that owns the dataset,
+# and change the password. Dataset and permission setup: docs/truenas.md.
 
 services:
   devbox:
