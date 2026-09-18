@@ -6,6 +6,8 @@ on:
     paths-ignore:
       - 'README.md'
       - 'compose.yaml'
+      - 'compose.*.yaml'
+      - 'docs/**'
       - '.yamllint.yaml'
   schedule:
     # Nightly at 05:17 UTC so the image picks up new upstream releases.

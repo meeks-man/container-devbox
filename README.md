@@ -62,7 +62,8 @@ docker build -t devbox .
 ```
 .github/workflows/build.yml   nightly + on-push multi-arch build to GHCR
 Dockerfile                    two-stage: tmux from source, then runtime
-compose.yaml                  run config + watchtower
+compose.yaml                  run config + watchtower (generic Docker host)
+compose.truenas.yaml          same, with TrueNAS dataset paths; see docs/truenas.md
 entrypoint.sh                 ttyd -> tmux new-session -A -s main
 config/tmux.conf              mouse, vi keys, Alt+hjkl panes, kube context in status
 config/nvim/                  init.lua, no plugins, built-in LSP + completion

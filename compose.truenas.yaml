@@ -1,0 +1,42 @@
+# TrueNAS SCALE: Apps -> Discover -> Custom App -> Install via YAML, paste this.
+#
+# Before installing, create the dataset and directories described in
+# docs/truenas.md. Replace POOL below with your pool name. Every path under
+# /mnt/POOL/apps/devbox must be owned by uid 1000, which is the container user.
+
+services:
+  devbox:
+    image: ghcr.io/meeks-man/container-devbox:latest
+    container_name: devbox
+    hostname: devbox
+    environment:
+      - TTYD_CREDENTIAL=josh:pick-a-strong-password
+      - TZ=America/Chicago
+    volumes:
+      - /mnt/POOL/apps/devbox/claude:/home/dev/.claude
+      - /mnt/POOL/apps/devbox/work:/home/dev/work
+      - /mnt/POOL/apps/devbox/kube:/home/dev/.kube
+      - /mnt/POOL/apps/devbox/talos:/home/dev/.talos
+      - /mnt/POOL/apps/devbox/local:/home/dev/.local/state
+      - /mnt/POOL/apps/devbox/gitconfig:/home/dev/.gitconfig
+    ports:
+      - '7681:7681'
+    restart: unless-stopped
+    init: true
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8g
+
+  # Pulls the nightly image and recreates devbox when it changes.
+  # --label-enable keeps it away from every other app on the NAS.
+  watchtower:
+    image: containrrr/watchtower
+    container_name: devbox-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --label-enable --cleanup --interval 3600
