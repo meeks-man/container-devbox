@@ -1,16 +1,16 @@
-# devbox
+# container-devbox
 
-[![build](https://github.com/meeks-man/devbox/actions/workflows/build.yml/badge.svg)](https://github.com/meeks-man/devbox/actions/workflows/build.yml)
+[![build](https://github.com/meeks-man/container-devbox/actions/workflows/build.yml/badge.svg)](https://github.com/meeks-man/container-devbox/actions/workflows/build.yml)
 
 Browser terminal (ttyd) into a shared tmux session with Neovim, k9s, kubectl,
-Claude Code, yazi, and YAML tooling. Published to
-`ghcr.io/meeks-man/devbox`, rebuilt nightly from every tool's latest upstream
+Claude Code, talosctl, git, yazi, and YAML tooling. Published to
+`ghcr.io/meeks-man/container-devbox`, rebuilt nightly from every tool's latest upstream
 release, for linux/amd64 and linux/arm64.
 
 ## Run
 
 ```bash
-mkdir -p data/{claude,work,kube,local} && chown -R 1000:1000 data
+mkdir -p data/{claude,work,kube,talos,local} && touch data/gitconfig && chown -R 1000:1000 data
 cp ~/.kube/config data/kube/config      # or your talos-generated kubeconfig
 # edit TTYD_CREDENTIAL in compose.yaml
 docker compose up -d
@@ -23,7 +23,8 @@ and recreates the container; your data lives in ./data so nothing is lost.
 ## First run
 
 - `claude` then `/login` once. The token lives in ./data/claude.
-- `k9s` reads ./data/kube/config.
+- `k9s` reads ./data/kube/config. For Talos: put talosconfig in ./data/talos/config, then `talosctl kubeconfig ~/.kube/config`.
+- Create ./data/gitconfig on the host with your git name and email before first start.
 - `y` opens yazi and cd's to wherever you quit. `v` is nvim, `k` is kubectl.
 
 ## How updates work

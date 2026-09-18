@@ -1,6 +1,6 @@
 services:
   devbox:
-    image: ghcr.io/meeks-man/devbox:latest
+    image: ghcr.io/meeks-man/container-devbox:latest
     container_name: devbox
     hostname: devbox
     environment:
@@ -12,7 +12,9 @@ services:
       - ./data/claude:/home/dev/.claude        # Claude Code config, token, history
       - ./data/work:/home/dev/work             # your files
       - ./data/kube:/home/dev/.kube            # kubeconfig for k9s / kubectl
+      - ./data/talos:/home/dev/.talos          # talosconfig for talosctl
       - ./data/local:/home/dev/.local/state    # shell history
+      - ./data/gitconfig:/home/dev/.gitconfig  # git identity (create this file first)
     ports:
       - '7681:7681'
     restart: unless-stopped

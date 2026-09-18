@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# devbox: tmux + ttyd + neovim + k9s + kubectl + Claude Code + yazi + YAML tooling
+# container-devbox: tmux + ttyd + neovim + k9s + kubectl + talosctl + git + Claude Code + yazi + YAML tooling
 # Every tool is pulled from its upstream "latest" release at build time.
 # Rebuild with:  docker compose build --no-cache --pull
 
@@ -94,13 +94,18 @@ RUN set -eux; \
     curl -fsSL -o /usr/local/bin/kubectl "https://dl.k8s.io/release/${KV}/bin/linux/${KUBE_ARCH}/kubectl"; \
     chmod +x /usr/local/bin/kubectl; \
     \
+    # talosctl (Talos Linux CLI; generates kubeconfig for k9s/kubectl)
+    curl -fsSL -o /usr/local/bin/talosctl "https://github.com/siderolabs/talos/releases/latest/download/talosctl-linux-${KUBE_ARCH}"; \
+    chmod +x /usr/local/bin/talosctl; \
+    \
     rm -rf /tmp/*; \
     \
     # print versions so the build log doubles as a manifest (informational, never fails the build)
     echo "=== installed versions ==="; \
     for c in "nvim --version" "k9s version --short" "ttyd --version" "yazi --version" \
-             "yamlfmt --version" "kubectl version --client" "tmux -V" "claude --version" \
-             "yaml-language-server --version" "prettier --version" "yamllint --version" "node --version"; do \
+             "yamlfmt --version" "kubectl version --client" "talosctl version --client --short" \
+             "tmux -V" "git --version" "claude --version" "yaml-language-server --version" \
+             "prettier --version" "yamllint --version" "node --version"; do \
       printf '%-32s' "$c"; $c 2>&1 | head -1 || true; \
     done
 
@@ -116,7 +121,7 @@ COPY --chown=dev:dev config/bashrc.extra /home/dev/.bashrc.extra
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && echo '[ -f ~/.bashrc.extra ] && . ~/.bashrc.extra' >> /home/dev/.bashrc \
-    && mkdir -p /home/dev/work /home/dev/.claude /home/dev/.kube \
+    && mkdir -p /home/dev/work /home/dev/.claude /home/dev/.kube /home/dev/.talos \
     && chown -R dev:dev /home/dev
 
 USER dev
