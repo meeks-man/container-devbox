@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# container-devbox: tmux + ttyd + neovim + k9s + kubectl + talosctl + git + Claude Code + yazi + YAML tooling
+# container-devbox: tmux + ttyd + neovim + k9s + kubectl + talosctl + helm + kustomize + git + Claude Code + yazi + YAML tooling
 # Every tool is pulled from its upstream "latest" release at build time.
 # Rebuild with:  docker compose build --no-cache --pull
 
@@ -98,12 +98,22 @@ RUN set -eux; \
     curl -fsSL -o /usr/local/bin/talosctl "https://github.com/siderolabs/talos/releases/latest/download/talosctl-linux-${KUBE_ARCH}"; \
     chmod +x /usr/local/bin/talosctl; \
     \
+    # helm (version from the official latest-version endpoint)
+    HV="$(curl -fsSL https://get.helm.sh/helm-latest-version)"; \
+    curl -fsSL "https://get.helm.sh/helm-${HV}-linux-${KUBE_ARCH}.tar.gz" | tar -xz -C /tmp; \
+    install -m755 "/tmp/linux-${KUBE_ARCH}/helm" /usr/local/bin/helm; \
+    \
+    # kustomize (tags look like kustomize/v5.x.y; asset embeds the bare version)
+    KZ="$(latest kubernetes-sigs/kustomize)"; KZV="${KZ#kustomize/}"; \
+    curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/${KZ}/kustomize_${KZV}_linux_${KUBE_ARCH}.tar.gz" | tar -xz -C /usr/local/bin kustomize; \
+    \
     rm -rf /tmp/*; \
     \
     # print versions so the build log doubles as a manifest (informational, never fails the build)
     echo "=== installed versions ==="; \
     for c in "nvim --version" "k9s version --short" "ttyd --version" "yazi --version" \
              "yamlfmt --version" "kubectl version --client" "talosctl version --client --short" \
+             "helm version --short" "kustomize version" \
              "tmux -V" "git --version" "claude --version" "yaml-language-server --version" \
              "prettier --version" "yamllint --version" "node --version"; do \
       printf '%-32s' "$c"; $c 2>&1 | head -1 || true; \

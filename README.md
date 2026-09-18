@@ -3,7 +3,7 @@
 [![build](https://github.com/meeks-man/container-devbox/actions/workflows/build.yml/badge.svg)](https://github.com/meeks-man/container-devbox/actions/workflows/build.yml)
 
 Browser terminal (ttyd) into a shared tmux session with Neovim, k9s, kubectl,
-Claude Code, talosctl, git, yazi, and YAML tooling. Published to
+Claude Code, talosctl, helm, kustomize, git, yazi, and YAML tooling. Published to
 `ghcr.io/meeks-man/container-devbox`, rebuilt nightly from every tool's latest upstream
 release, for linux/amd64 and linux/arm64.
 

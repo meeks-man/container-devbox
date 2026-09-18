@@ -70,6 +70,7 @@ jobs:
           docker run --rm --entrypoint sh ${{ env.IMAGE }}:latest -c '
             for c in "nvim --version" "k9s version --short" "ttyd --version" "yazi --version" \
                      "yamlfmt --version" "kubectl version --client" "talosctl version --client --short" \
+                     "helm version --short" "kustomize version" \
                      "tmux -V" "git --version" "claude --version" \
                      "yaml-language-server --version" "prettier --version" "yamllint --version" "node --version"; do
               printf "%-32s" "$c"; $c 2>&1 | head -1 || true
