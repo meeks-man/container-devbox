@@ -70,3 +70,15 @@ config/nvim/                  init.lua, no plugins, built-in LSP + completion
 config/yazi/                  yazi.toml
 config/bashrc.extra           PATH, history, zoxide, fzf, y/k/v aliases
 ```
+
+## Running as a different user (PUID / PGID)
+
+The container starts as root, changes the internal `dev` user to the uid and
+gid given by `PUID` and `PGID` (default 1000/1000), fixes ownership of the
+image's own files, and drops privileges before ttyd starts. Set them to the
+owner of your mounted directories. Mounted volumes are never chown'd
+recursively; if one is not writable the log prints a warning naming it.
+
+For several people, run one service per person with their own `PUID`,
+`PGID`, data directory, port, and credential. Files they create are then
+owned by them on the host.

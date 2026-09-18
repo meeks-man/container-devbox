@@ -34,7 +34,7 @@ ENV LANG=C.UTF-8 \
 
 # Runtime packages. build-essential is only here for pip and npm native deps.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git gnupg openssh-client less procps \
+      ca-certificates curl git gnupg openssh-client less procps tzdata util-linux \
       unzip xz-utils tar jq file \
       python3 python3-pip \
       ripgrep fd-find fzf zoxide bat p7zip-full poppler-utils \
@@ -133,9 +133,12 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
     && mkdir -p /home/dev/work /home/dev/.claude /home/dev/.kube /home/dev/.talos \
     && chown -R dev:dev /home/dev
 
-USER dev
+# The entrypoint starts as root, aligns "dev" to PUID/PGID, then drops to it.
+# Override PUID/PGID to match the owner of the mounted directories.
 WORKDIR /home/dev/work
-ENV EDITOR=nvim \
+ENV PUID=1000 \
+    PGID=1000 \
+    EDITOR=nvim \
     VISUAL=nvim \
     CLAUDE_CONFIG_DIR=/home/dev/.claude \
     DISABLE_AUTOUPDATER=1 \

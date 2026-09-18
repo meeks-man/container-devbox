@@ -10,6 +10,9 @@ services:
     container_name: devbox
     hostname: devbox
     environment:
+      # Run as this uid/gid. Must match the owner of the mounted directories.
+      - PUID=1000
+      - PGID=1000
       - TTYD_CREDENTIAL=josh:pick-a-strong-password
       - TZ=America/Chicago
     volumes:

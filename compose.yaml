@@ -4,6 +4,9 @@ services:
     container_name: devbox
     hostname: devbox
     environment:
+      # Run as this uid/gid. Must match the owner of the mounted directories.
+      - PUID=1000
+      - PGID=1000
       # Basic auth for the browser terminal. Remove to run without a login
       # (only do that if Caddy or another proxy handles auth in front).
       - TTYD_CREDENTIAL=josh:pick-a-strong-password

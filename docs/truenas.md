@@ -74,3 +74,22 @@ lands in the claude directory and survives image updates.
   Watchtower does that from the nightly GHCR build.
 - Resource limits in the compose file are a starting point. Raise them if
   Claude Code sessions or builds feel slow.
+
+## Several people on one NAS
+
+Give each person their own dataset and run the container as their TrueNAS
+account:
+
+```
+POOL/apps/devbox/josh    owned by josh   (uid 1000)   PUID=1000 PGID=1000  port 7681
+POOL/apps/devbox/alice   owned by alice  (uid 1001)   PUID=1001 PGID=1001  port 7682
+```
+
+Duplicate the `devbox` service in the compose file once per person, changing
+`container_name`, the host paths, `PUID`, `PGID`, the port, and
+`TTYD_CREDENTIAL`. One watchtower service covers all of them. Find a user's
+uid with `id <name>` in the TrueNAS shell.
+
+Running as the shared `apps` user (568) works too, by setting `PUID=568` and
+`PGID=568` and owning the dataset accordingly, but that gives every other
+568 app on the NAS a path to this one's credentials. Prefer per-person uids.
