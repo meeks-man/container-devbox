@@ -1,0 +1,31 @@
+services:
+  devbox:
+    image: ghcr.io/meeks-man/devbox:latest
+    container_name: devbox
+    hostname: devbox
+    environment:
+      # Basic auth for the browser terminal. Remove to run without a login
+      # (only do that if Caddy or another proxy handles auth in front).
+      - TTYD_CREDENTIAL=josh:pick-a-strong-password
+      # - TZ=America/Chicago
+    volumes:
+      - ./data/claude:/home/dev/.claude        # Claude Code config, token, history
+      - ./data/work:/home/dev/work             # your files
+      - ./data/kube:/home/dev/.kube            # kubeconfig for k9s / kubectl
+      - ./data/local:/home/dev/.local/state    # shell history
+    ports:
+      - '7681:7681'
+    restart: unless-stopped
+    init: true
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  # Pulls the new nightly image and recreates devbox when it changes.
+  # Only touches containers carrying the label above.
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --label-enable --cleanup --interval 3600

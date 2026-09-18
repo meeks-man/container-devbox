@@ -1,0 +1,26 @@
+# Sourced from ~/.bashrc inside the devbox image.
+export PATH="$HOME/.local/bin:$PATH"
+export HISTSIZE=50000 HISTFILESIZE=100000
+export HISTFILE="$HOME/.local/state/bash_history"
+shopt -s histappend
+mkdir -p "$(dirname "$HISTFILE")"
+
+# zoxide (z <dir>) and fzf keybindings
+eval "$(zoxide init bash)"
+[ -f /usr/share/doc/fzf/examples/key-bindings.bash ] && . /usr/share/doc/fzf/examples/key-bindings.bash
+
+# yazi: `y` opens yazi and cd's to where you quit
+y() {
+  local tmp cwd
+  tmp="$(mktemp -t yazi-cwd.XXXXXX)"
+  yazi "$@" --cwd-file="$tmp"
+  if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+    builtin cd -- "$cwd"
+  fi
+  rm -f -- "$tmp"
+}
+
+alias k=kubectl
+alias v=nvim
+alias ll='ls -lah --color=auto'
+source <(kubectl completion bash 2>/dev/null) && complete -o default -F __start_kubectl k

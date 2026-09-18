@@ -1,0 +1,76 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'compose.yaml'
+      - '.yamllint.yaml'
+  schedule:
+    # Nightly at 05:17 UTC so the image picks up new upstream releases.
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value={{date 'YYYYMMDD'}}
+            type=sha,format=short
+          labels: |
+            org.opencontainers.image.title=devbox
+            org.opencontainers.image.description=tmux + ttyd + neovim + k9s + kubectl + Claude Code + yazi + YAML tooling, rebuilt nightly from upstream latest releases
+
+      # no-cache is deliberate: the Dockerfile fetches "latest" release URLs,
+      # so a cached layer would silently pin old versions.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          pull: true
+          no-cache: true
+          provenance: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Report installed versions
+        run: |
+          docker run --rm --entrypoint sh ${{ env.IMAGE }}:latest -c '
+            for c in "nvim --version" "k9s version --short" "ttyd --version" "yazi --version" \
+                     "yamlfmt --version" "kubectl version --client" "tmux -V" "claude --version" \
+                     "yaml-language-server --version" "prettier --version" "yamllint --version" "node --version"; do
+              printf "%-32s" "$c"; $c 2>&1 | head -1 || true
+            done' | tee versions.txt
+          { echo '## Installed versions'; echo; echo '```'; cat versions.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

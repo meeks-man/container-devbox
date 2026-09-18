@@ -1,0 +1,11 @@
+# Minimal yazi settings. Everything else is default.
+# Docs: https://yazi-rs.github.io/docs/configuration/yazi
+[mgr]
+show_hidden = true
+sort_by = "natural"
+sort_dir_first = true
+
+[opener]
+edit = [
+  { run = 'nvim "$@"', block = true, desc = "nvim" },
+]
