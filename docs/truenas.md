@@ -69,7 +69,7 @@ Apps -> Discover -> Custom App -> Install via YAML. Paste
 `compose/devbox.truenas.yaml` with POOL and USER replaced, PUID/PGID set, and
 the ttyd password changed.
 
-Open `http://<truenas-ip>:7681`. Run `claude` and `/login` once; the token
+Open `https://<truenas-ip>:7681` and accept the self-signed certificate once. Run `claude` and `/login` once; the token
 lands in the claude directory and survives image updates.
 
 ## Adding the VS Code box to the same profile

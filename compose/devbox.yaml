@@ -7,6 +7,8 @@ services:
       # Run as this uid/gid. Must match the owner of the mounted directories.
       - PUID=1000
       - PGID=1000
+      # ttyd serves https with a self-signed cert by default. Set 0 for plain http behind a TLS-terminating proxy.
+      # - TTYD_SSL=0
       # Basic auth for the browser terminal. Remove to run without a login
       # (only do that if Caddy or another proxy handles auth in front).
       - TTYD_CREDENTIAL=USER:pick-a-strong-password

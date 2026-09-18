@@ -9,7 +9,7 @@ directories, so one dataset per person holds everything.
 
 | Image | What you get | Port |
 |---|---|---|
-| `ghcr.io/meeks-man/container-devbox` | Browser terminal: ttyd into a shared tmux session | 7681 http |
+| `ghcr.io/meeks-man/container-devbox` | Browser terminal: ttyd into a shared tmux session | 7681 https, self-signed |
 | `ghcr.io/meeks-man/container-vscode` | Official VS Code desktop streamed via KasmVNC (linuxserver webtop) | 3000 http / 3001 https |
 
 Both carry the same CLI toolset: neovim, k9s, kubectl, talosctl, helm,

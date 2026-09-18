@@ -58,4 +58,25 @@ if [ -n "$TTYD_CREDENTIAL" ]; then
   set -- "$@" -c "$TTYD_CREDENTIAL"
 fi
 
+# TLS. On by default with a self-signed certificate that persists in the
+# mounted state directory, so the browser warning is accepted once, not after
+# every image update. Mount your own pair and point TTYD_SSL_CERT/KEY at it,
+# or set TTYD_SSL=0 for plain HTTP when a reverse proxy terminates TLS.
+if [ "${TTYD_SSL:-1}" != "0" ]; then
+  CERT="${TTYD_SSL_CERT:-$HOME_DIR/.local/state/ttyd/cert.pem}"
+  KEY="${TTYD_SSL_KEY:-$HOME_DIR/.local/state/ttyd/key.pem}"
+  if [ ! -s "$CERT" ] || [ ! -s "$KEY" ]; then
+    mkdir -p "$(dirname "$CERT")" "$(dirname "$KEY")"
+    openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes \
+      -keyout "$KEY" -out "$CERT" -days 3650 -subj "/CN=devbox" \
+      -addext "subjectAltName=DNS:devbox,DNS:localhost,DNS:$(hostname),IP:127.0.0.1" >/dev/null 2>&1
+    chmod 600 "$KEY"
+    echo "devbox: generated self-signed TLS certificate at $CERT"
+  fi
+  set -- "$@" -S -C "$CERT" -K "$KEY"
+  echo "devbox: serving https on port ${TTYD_PORT:-7681}"
+else
+  echo "devbox: serving plain http on port ${TTYD_PORT:-7681} (TTYD_SSL=0)"
+fi
+
 exec ttyd "$@" tmux new-session -A -s main

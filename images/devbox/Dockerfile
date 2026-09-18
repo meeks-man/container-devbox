@@ -27,7 +27,7 @@ ARG TARGETARCH
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8 TERM=xterm-256color COLORTERM=truecolor
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git gnupg openssh-client less procps tzdata util-linux \
+      ca-certificates curl git gnupg openssh-client less procps tzdata util-linux openssl \
       unzip xz-utils tar jq file bash \
       python3 python3-pip \
       ripgrep fd-find fzf zoxide bat p7zip-full poppler-utils \
@@ -71,10 +71,12 @@ ENV PUID=1000 PGID=1000 \
     EDITOR=nvim VISUAL=nvim \
     CLAUDE_CONFIG_DIR=/home/dev/.claude \
     DISABLE_AUTOUPDATER=1 \
-    TTYD_PORT=7681
+    TTYD_PORT=7681 \
+    TTYD_SSL=1
 
 EXPOSE 7681
 # 401 counts as healthy: ttyd is up and asking for the configured password.
+# Scheme follows TTYD_SSL; -k accepts the self-signed certificate.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${TTYD_PORT}/" | grep -Eq '^(200|401)$' || exit 1
+  CMD sh -c 'S=https; [ "${TTYD_SSL:-1}" = "0" ] && S=http; curl -sk -o /dev/null -w "%{http_code}" "$S://127.0.0.1:${TTYD_PORT}/" | grep -Eq "^(200|401)$"' || exit 1
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
