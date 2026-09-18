@@ -1,0 +1,38 @@
+# TrueNAS SCALE: Apps -> Discover -> Custom App -> Install via YAML.
+# Shares the same per-user dataset as the devbox, so both containers see the
+# same work files, kubeconfig, talosconfig, Claude session and git identity.
+# Create the extra "vscode" directory first:  mkdir $D/vscode && chown 3000:3000 $D/vscode
+
+services:
+  vscode-meeks:
+    image: ghcr.io/meeks-man/container-vscode:latest
+    container_name: vscode-meeks
+    environment:
+      - PUID=3000
+      - PGID=3000
+      - TZ=America/Chicago
+      - TITLE=VS Code
+      # KasmVNC basic auth. Remove both when Caddy + Authentik sit in front.
+      - CUSTOM_USER=meeks
+      - PASSWORD=pick-a-strong-password
+    volumes:
+      - /mnt/FastClass/devboxs/meeks/vscode:/config              # VS Code settings, extensions, desktop state
+      - /mnt/FastClass/devboxs/meeks/work:/config/work
+      - /mnt/FastClass/devboxs/meeks/kube:/config/.kube
+      - /mnt/FastClass/devboxs/meeks/talos:/config/.talos
+      - /mnt/FastClass/devboxs/meeks/claude:/config/.claude
+      - /mnt/FastClass/devboxs/meeks/gitconfig:/config/.gitconfig
+    ports:
+      - '7690:3000'   # http
+      - '7691:3001'   # https, self-signed
+    shm_size: 1gb
+    security_opt:
+      - seccomp:unconfined   # Electron/Chromium sandboxing inside KasmVNC
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8g

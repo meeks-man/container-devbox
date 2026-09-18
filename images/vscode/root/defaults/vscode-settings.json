@@ -1,0 +1,12 @@
+{
+  "telemetry.telemetryLevel": "off",
+  "update.mode": "none",
+  "workbench.startupEditor": "none",
+  "window.titleBarStyle": "custom",
+  "files.autoSave": "afterDelay",
+  "editor.fontSize": 14,
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.fontSize": 14,
+  "[yaml]": { "editor.tabSize": 2, "editor.insertSpaces": true },
+  "yaml.schemas": { "kubernetes": ["k8s/**/*.yaml", "manifests/**/*.yaml", "clusters/**/*.yaml", "apps/**/*.yaml", "talos/**/*.yaml"] }
+}

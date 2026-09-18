@@ -2,83 +2,77 @@
 
 [![build](https://github.com/meeks-man/container-devbox/actions/workflows/build.yml/badge.svg)](https://github.com/meeks-man/container-devbox/actions/workflows/build.yml)
 
-Browser terminal (ttyd) into a shared tmux session with Neovim, k9s, kubectl,
-Claude Code, talosctl, helm, kustomize, git, yazi, and YAML tooling. Published to
-`ghcr.io/meeks-man/container-devbox`, rebuilt nightly from every tool's latest upstream
-release, for linux/amd64 and linux/arm64.
+Per-user development boxes for a homelab, published to GHCR and rebuilt
+nightly from every tool's latest upstream release, for linux/amd64 and
+linux/arm64. Both images honour `PUID`/`PGID` and keep all state in mounted
+directories, so one dataset per person holds everything.
+
+| Image | What you get | Port |
+|---|---|---|
+| `ghcr.io/meeks-man/container-devbox` | Browser terminal: ttyd into a shared tmux session | 7681 http |
+| `ghcr.io/meeks-man/container-vscode` | Official VS Code desktop streamed via KasmVNC (linuxserver webtop) | 3000 http / 3001 https |
+
+Both carry the same CLI toolset: neovim, k9s, kubectl, talosctl, helm,
+kustomize, git, Claude Code, yazi, yaml-language-server, prettier, yamlfmt,
+yamllint, tmux, ripgrep, fd, fzf, zoxide, bat.
 
 ## Run
 
-```bash
-mkdir -p data/{claude,work,kube,talos,local} && touch data/gitconfig && chown -R 1000:1000 data
-cp ~/.kube/config data/kube/config      # or your talos-generated kubeconfig
-# edit TTYD_CREDENTIAL in compose.yaml
-docker compose up -d
-```
+Generic Docker host: `compose/devbox.yaml`.
+TrueNAS SCALE: `compose/devbox.truenas.yaml` and `compose/vscode.truenas.yaml`,
+with the dataset prep in [docs/truenas.md](docs/truenas.md).
 
-Open http://<host>:7681. Put it behind Caddy with TLS before exposing it
-beyond the LAN. Watchtower in the same compose file pulls each nightly image
-and recreates the container; your data lives in ./data so nothing is lost.
+Mount the same per-user directories into both containers and they become two
+windows onto one profile: same work files, kubeconfig, talosconfig, Claude
+session and git identity.
 
 ## First run
 
-- `claude` then `/login` once. The token lives in ./data/claude.
-- `k9s` reads ./data/kube/config. For Talos: put talosconfig in ./data/talos/config, then `talosctl kubeconfig ~/.kube/config`.
-- Create ./data/gitconfig on the host with your git name and email before first start.
-- `y` opens yazi and cd's to wherever you quit. `v` is nvim, `k` is kubectl.
+- `claude` then `/login` once. The token lives in the mounted claude directory.
+- `k9s` reads the mounted kubeconfig. `talosctl` reads the mounted talosconfig.
+- Terminal: `y` opens yazi and cd's to where you quit, `v` is nvim, `k` is kubectl.
+- VS Code: opens on `/config/work`. Extensions and settings persist in the
+  mounted `/config`. `--password-store=basic` is set so Copilot and other
+  sign-ins survive restarts without a keyring.
 
 ## How updates work
 
 | Trigger | What happens |
 |---|---|
-| Push to main | Image rebuilt and pushed as `latest`, `YYYYMMDD`, and `sha-xxxxxxx` |
-| Nightly 05:17 UTC | Same, with no layer cache, so new upstream releases land |
-| Watchtower on the host | Checks hourly, pulls new `latest`, recreates the container |
+| Push to main | Both images rebuilt and pushed as `latest`, `YYYYMMDD`, `sha-xxxxxxx` |
+| Nightly 05:17 UTC | Same, no layer cache, so new upstream releases land |
+| Watchtower on the host | Pulls new `latest`, recreates the container, data untouched |
 
 Each workflow run prints the installed versions in its job summary.
-Pin a date tag instead of `latest` if you want to freeze a known-good build.
+Pin a date tag instead of `latest` to freeze a known-good build.
 
-## YAML tooling
+## Running as a different user (PUID / PGID)
 
-| Tool | Role |
-|---|---|
-| yaml-language-server | LSP in Neovim: schemas, completion, diagnostics, format |
-| prettier | Formatter used by the LSP, also on CLI: `prettier -w file.yaml` |
-| yamlfmt | Google's formatter, CLI: `yamlfmt file.yaml` |
-| yamllint | Linter, CLI: `yamllint .` (see .yamllint.yaml) |
+Set `PUID` and `PGID` to the owner of the mounted directories. The devbox
+entrypoint starts as root, rewrites the internal user to match, fixes
+ownership of image-owned files only, and drops privileges before ttyd starts.
+The vscode image inherits the same behaviour from linuxserver's webtop base.
+Mounted volumes are never chown'd recursively.
 
-Kubernetes schema is applied to k8s/, kubernetes/, manifests/, clusters/, apps/,
-infrastructure/, talos/ paths and *.k8s.yaml. Edit the globs in
-config/nvim/init.lua. Everything else resolves through SchemaStore.
-
-## Build locally
-
-```bash
-docker build -t devbox .
-```
+For several people, run one container per person with their own `PUID`,
+`PGID`, dataset, port and credential. Files they create are owned by them on
+the host.
 
 ## Layout
 
 ```
-.github/workflows/build.yml   nightly + on-push multi-arch build to GHCR
-Dockerfile                    two-stage: tmux from source, then runtime
-compose.yaml                  run config + watchtower (generic Docker host)
-compose.truenas.yaml          same, with TrueNAS dataset paths; see docs/truenas.md
-entrypoint.sh                 ttyd -> tmux new-session -A -s main
-config/tmux.conf              mouse, vi keys, Alt+hjkl panes, kube context in status
-config/nvim/                  init.lua, no plugins, built-in LSP + completion
-config/yazi/                  yazi.toml
-config/bashrc.extra           PATH, history, zoxide, fzf, y/k/v aliases
+images/common/install-tools.sh   shared installer: every CLI tool at upstream latest
+images/common/versions.sh        prints installed versions (devbox-versions in the image)
+images/devbox/                   Dockerfile, entrypoint.sh, tmux/nvim/yazi/bash config
+images/vscode/                   Dockerfile on webtop + autostart, default settings
+compose/                         run configs for a generic host and for TrueNAS
+docs/truenas.md                  dataset, user and permissions setup on TrueNAS
+.github/workflows/build.yml      matrix build of both images to GHCR
 ```
 
-## Running as a different user (PUID / PGID)
+## Build locally
 
-The container starts as root, changes the internal `dev` user to the uid and
-gid given by `PUID` and `PGID` (default 1000/1000), fixes ownership of the
-image's own files, and drops privileges before ttyd starts. Set them to the
-owner of your mounted directories. Mounted volumes are never chown'd
-recursively; if one is not writable the log prints a warning naming it.
-
-For several people, run one service per person with their own `PUID`,
-`PGID`, data directory, port, and credential. Files they create are then
-owned by them on the host.
+```bash
+docker build -f images/devbox/Dockerfile -t devbox .
+docker build -f images/vscode/Dockerfile -t vscode .
+```

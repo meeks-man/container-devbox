@@ -1,0 +1,13 @@
+#!/bin/bash
+# Runs as root at container start, after PUID/PGID are applied to user abc.
+# Seeds VS Code settings on first run and makes sure the mount points exist.
+S=/config/.config/Code/User
+if [ ! -f "$S/settings.json" ]; then
+  mkdir -p "$S"
+  cp /defaults/vscode-settings.json "$S/settings.json"
+  chown -R abc:abc /config/.config/Code
+fi
+for d in work .claude .kube .talos .local/state; do
+  mkdir -p "/config/$d"
+  chown abc:abc "/config/$d" 2>/dev/null || true
+done

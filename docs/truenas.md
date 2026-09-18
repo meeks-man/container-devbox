@@ -93,3 +93,23 @@ uid with `id <name>` in the TrueNAS shell.
 Running as the shared `apps` user (568) works too, by setting `PUID=568` and
 `PGID=568` and owning the dataset accordingly, but that gives every other
 568 app on the NAS a path to this one's credentials. Prefer per-person uids.
+
+## Adding the VS Code box to the same profile
+
+`compose/vscode.truenas.yaml` mounts the same per-user directories plus one
+extra for VS Code's own state. Create it and install:
+
+```bash
+D=/mnt/FastClass/devboxs/meeks
+mkdir -p $D/vscode && chown 3000:3000 $D/vscode
+```
+
+Then Apps -> Custom App -> Install via YAML with `compose/vscode.truenas.yaml`.
+Open `https://meeksnas:7691` (self-signed) or `http://meeksnas:7690`, log in
+with CUSTOM_USER / PASSWORD, and VS Code opens on your work directory. Sign in
+to Copilot or GitHub inside VS Code as normal; credentials persist in
+`$D/vscode`.
+
+The devbox and VS Code containers can run at the same time. Both see the same
+files, and a Claude Code session started in one is visible from the other via
+`claude --resume`.

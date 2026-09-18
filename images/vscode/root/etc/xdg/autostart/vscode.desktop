@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Visual Studio Code
+Comment=Launch VS Code on the work directory at desktop start
+Exec=/usr/bin/code --no-sandbox --password-store=basic /config/work
+Terminal=false
+X-GNOME-Autostart-enabled=true
