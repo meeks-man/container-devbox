@@ -73,6 +73,6 @@ jobs:
                      "helm version --short" "kustomize version" \
                      "tmux -V" "git --version" "claude --version" \
                      "yaml-language-server --version" "prettier --version" "yamllint --version" "node --version"; do
-              printf "%-32s" "$c"; $c 2>&1 | head -1 || true
+              printf "%-34s" "$c"; $c 2>&1 | grep -m1 -E "[0-9]+\.[0-9]+" || true
             done' | tee versions.txt
           { echo '## Installed versions'; echo; echo '```'; cat versions.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

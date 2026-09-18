@@ -6,7 +6,7 @@
 ############################
 # Stage 1: build tmux from the latest release tarball
 ############################
-FROM debian:bookworm-slim AS tmux-build
+FROM debian:trixie-slim AS tmux-build
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl build-essential pkg-config \
@@ -24,7 +24,7 @@ RUN set -eux; \
 ############################
 # Stage 2: runtime image
 ############################
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
 ENV LANG=C.UTF-8 \
@@ -34,11 +34,11 @@ ENV LANG=C.UTF-8 \
 
 # Runtime packages. build-essential is only here for pip and npm native deps.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git gnupg openssh-client less procps sudo \
+      ca-certificates curl git gnupg openssh-client less procps \
       unzip xz-utils tar jq file \
       python3 python3-pip \
       ripgrep fd-find fzf zoxide bat p7zip-full poppler-utils \
-      libevent-core-2.1-7 libncurses6 libncursesw6 libtinfo6 \
+      libevent-core-2.1-7t64 libncurses6 libncursesw6 libtinfo6 \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf /usr/bin/fdfind /usr/local/bin/fd \
     && ln -sf /usr/bin/batcat /usr/local/bin/bat
@@ -116,13 +116,12 @@ RUN set -eux; \
              "helm version --short" "kustomize version" \
              "tmux -V" "git --version" "claude --version" "yaml-language-server --version" \
              "prettier --version" "yamllint --version" "node --version"; do \
-      printf '%-32s' "$c"; $c 2>&1 | head -1 || true; \
+      printf '%-34s' "$c"; $c 2>&1 | grep -m1 -E '[0-9]+\.[0-9]+' || true; \
     done
 
-# Unprivileged user
-RUN useradd -m -u 1000 -s /bin/bash dev \
-    && echo 'dev ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/dev \
-    && chmod 0440 /etc/sudoers.d/dev
+# Unprivileged user. No sudo: the image is rebuilt nightly, so anything you
+# would install by hand belongs in this Dockerfile instead.
+RUN useradd -m -u 1000 -s /bin/bash dev
 
 COPY --chown=dev:dev config/tmux.conf   /home/dev/.tmux.conf
 COPY --chown=dev:dev config/nvim        /home/dev/.config/nvim
